@@ -1,0 +1,51 @@
+version: 2.1
+orbs:
+  aws-ecr: circleci/aws-ecr@8.2.1
+  aws-cli: circleci/aws-cli@3.1.4
+jobs:
+  continuous-integration:
+    docker:
+      - image: cimg/base:stable
+    resource_class: medium
+    steps:
+      - setup_remote_docker:
+          version: 20.10.14
+          docker_layer_caching: true
+
+      - aws-ecr/build-and-push-image:
+          create-repo: true
+          dockerfile: Dockerfile
+          path: .
+          platform: linux/amd64
+          push-image: true
+          region: '${AWS_REGION}'
+          repo: videosummarizer
+          registry-id: AWS_ECR_REGISTRY_ID
+          repo-scan-on-push: true
+          tag: latest
+
+  continuous-delivery:
+    machine: true
+    resource_class: deep-learning-01/dl-ineuron
+    steps:
+      - aws-cli/setup
+
+      - run:
+          name: auth to aws ecr
+          command: aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 566373416292.dkr.ecr.ap-south-1.amazonaws.com
+
+      - run:
+          name: pull image from private repository
+          command: docker pull 566373416292.dkr.ecr.ap-south-1.amazonaws.com/videosummarizer:latest
+      
+      - run:
+          name: run image
+          command: docker run -d -p 5000:5000 566373416292.dkr.ecr.ap-south-1.amazonaws.com/videosummarizer:latest
+workflows:
+  CICD:
+    jobs:
+      - continuous-integration
+      - continuous-delivery:
+          requires:
+          - continuous-integration
+      
