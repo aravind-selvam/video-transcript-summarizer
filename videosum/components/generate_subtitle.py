@@ -22,7 +22,7 @@ class Config:
     audio_channel: int = 1
 
 
-# It takes a video path, a model path, and a task (either "stt" or "asr") and returns a subtitle
+# It takes a video path, a model path, and a task (transcribe or translate) and returns a subtitle
 class VideoToSubtitle:
     def __init__(self, config: Config):
         try:
